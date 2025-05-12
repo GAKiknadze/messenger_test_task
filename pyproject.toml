@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "messenger-test-task"
+version = "0.1.0"
+description = ""
+authors = ["GAKiknadze <gakiknadze@yandex.ru>"]
+license = "AGPL-3.0"
+readme = "README.md"
+
+
+[tool.poetry.dependencies]
+python = "^3.10"
+sqlalchemy = "^2.0.40"
+fastapi = {extras = ["standard"], version = "^0.115.12"}
+pydantic-settings = "^2.9.1"
+pyyaml = "^6.0.2"
+websockets = "^15.0.1"
+
+
+[tool.poetry.group.dev.dependencies]
+isort = "^6.0.1"
+black = "^25.1.0"
+alembic = "^1.15.2"
+
+
+[tool.poetry.group.test.dependencies]
+mypy = "^1.15.0"
+flake8 = "^7.2.0"
+pytest = "^8.3.5"
+pytest-asyncio = "^0.26.0"
+pytest-cov = "^6.1.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poe.tasks]
+isort = "isort ."
+black = "black ."
+format = ["isort", "black"]
+mypy = "mypy ."
+flake = "flake8 ./src --max-line-length=127"
+check = ["mypy", "flake"]
+test = "pytest --cov=src ./tests -v"
