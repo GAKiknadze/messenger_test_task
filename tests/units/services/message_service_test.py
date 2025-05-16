@@ -47,7 +47,7 @@ class FakeMessageRepository:
             for msg in self.messages.values()
             if msg.source_id == source_id and msg.source_type == source_type
         ]
-        return messages[offset : offset + limit]
+        return messages[offset: offset + limit]
 
 
 @pytest.fixture
