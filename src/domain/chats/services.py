@@ -171,16 +171,34 @@ class ChatService:
 
     async def create_personal(self, title: str, owner_user_1: UUID, owner_user_2: UUID) -> Chat:
         chat = await self.__chat_repo.create(chat_type=ChatType.PERSONAL, title=title)
-        await self.member_add(chat_id=chat.id, user_id=owner_user_1)
-        await self.member_change_role(chat_id=chat.id, user_id=owner_user_1, permissions=ChatMemberPermissions.ROLE_OWNER)
-        await self.member_add(chat_id=chat.id, user_id=owner_user_2)
-        await self.member_change_role(chat_id=chat.id, user_id=owner_user_2, permissions=ChatMemberPermissions.ROLE_OWNER)
+        await self.__chat_member_repo.create(
+            ChatMember(
+                chat_id=chat.id,
+                user_id=owner_user_1,
+                permissions=ChatMemberPermissions.ROLE_OWNER
+            )
+        )
+        await self.__chat_member_repo.create(
+            ChatMember(
+                chat_id=chat.id,
+                user_id=owner_user_2,
+                permissions=ChatMemberPermissions.ROLE_OWNER
+            )
+        )
         return chat
     
     async def create_group(self, title: str, owner_id: UUID) -> Chat:
-        chat = await self.__chat_repo.create(chat_type=ChatType.GROUP, title=title)
-        await self.member_add(chat_id=chat.id, user_id=owner_id)
-        await self.member_change_role(chat_id=chat.id, user_id=owner_id, permissions=ChatMemberPermissions.ROLE_OWNER)
+        chat = await self.__chat_repo.create(
+            chat_type=ChatType.GROUP,
+            title=title
+        )
+        await self.__chat_member_repo.create(
+            ChatMember(
+                chat_id=chat.id,
+                user_id=owner_id,
+                permissions=ChatMemberPermissions.ROLE_OWNER
+            )
+        )
         return chat
 
     async def _can_execute(self, chat_id: UUID, user_id: UUID, action: ChatMemberPermissions) -> bool:
