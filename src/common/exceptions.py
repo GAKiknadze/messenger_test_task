@@ -4,3 +4,7 @@ class AlreadyExistsExc(Exception):
 
 class ObjectNotFoundExc(Exception):
     pass
+
+
+class AccessDeniedExc(Exception):
+    pass

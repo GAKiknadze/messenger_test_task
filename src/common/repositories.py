@@ -5,11 +5,11 @@ T_OBJ = TypeVar("T_OBJ", covariant=True)
 
 
 class AbstractCreate(Protocol[T_OBJ]):
-    async def create(self, **attrs) -> T_OBJ:
+    async def create(self, obj: T_OBJ) -> T_OBJ:
         """Создать объект
 
         Kwargs:
-            **attrs (Dict[str, Any]): Параметры объекта
+            obj (T_OBJ): Параметры объекта
 
         Returns:
             T_OBJ: Объект
