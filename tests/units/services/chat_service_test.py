@@ -246,3 +246,22 @@ class TestChatService:
         )
         with pytest.raises(ObjectNotFoundExc):
             await chat_member_repository.get((chat.id, user_id))
+
+    async def test_member_get(self, chat_service):
+        owner_id = uuid4()
+        user_id = uuid4()
+        chat = await chat_service.create_group(title="Test Group", owner_id=owner_id)
+
+        await chat_service.member_add(
+            chat_id=chat.id,
+            user_id=user_id,
+            executor_id=owner_id
+        )
+
+        member = await chat_service.member_get(chat_id=chat.id, user_id=user_id)
+        assert member.chat_id == chat.id
+        assert member.user_id == user_id
+        assert member.permissions == entities.ChatMemberPermissions.ROLE_DEFAULT
+
+        with pytest.raises(ObjectNotFoundExc):
+            await chat_service.member_get(chat_id=chat.id, user_id=uuid4())

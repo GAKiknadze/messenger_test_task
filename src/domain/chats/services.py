@@ -163,6 +163,21 @@ class AbstractChatService(Protocol):
         """
         ...
 
+    async def member_get(self, chat_id: UUID, user_id: UUID) -> ChatMember:
+        """Получить участника чата
+
+        Args:
+            chat_id (UUID): ID чата
+            user_id (UUID): ID пользователя
+
+        Returns:
+            ChatMember: Объект участника чата
+
+        Raises:
+            ObjectNotFoundExc: Участник не найден
+        """
+        ...
+
 
 class ChatService:
     def __init__(self, chat_repository: AbstractChatRepository, chat_member_repository: AbstractChatMemberRepository):
@@ -220,6 +235,9 @@ class ChatService:
     
     async def get_list(self, user_id: UUID, offset: int = 0, limit:  int = 50) -> Sequence[UUID]:
         return await self.__chat_member_repo.list_by_user_id(_id=user_id, offset=offset, limit=limit)
+    
+    async def member_get(self, chat_id: UUID, user_id: UUID) -> ChatMember:
+        return await self.__chat_member_repo.get((chat_id, user_id))
     
     async def member_add(self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None) -> ChatMember:
         if executor_id is not None and not await self._can_execute(chat_id, executor_id, ChatMemberPermissions.MEMBER_ADD):
