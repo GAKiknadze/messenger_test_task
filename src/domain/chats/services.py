@@ -2,12 +2,14 @@ from typing import Protocol, Sequence
 from uuid import UUID
 
 from ...common.exceptions import AccessDeniedExc
-from .entities import Chat, ChatType, ChatMember, ChatMemberPermissions
-from .repositories import AbstractChatRepository, AbstractChatMemberRepository
+from .entities import Chat, ChatMember, ChatMemberPermissions, ChatType
+from .repositories import AbstractChatMemberRepository, AbstractChatRepository
 
 
 class AbstractChatService(Protocol):
-    async def create_personal(self, title: str, owner_user_1: UUID, owner_user_2: UUID) -> Chat:
+    async def create_personal(
+        self, title: str, owner_user_1: UUID, owner_user_2: UUID
+    ) -> Chat:
         """Создать личный чат между двумя пользователями
 
         Args:
@@ -46,7 +48,9 @@ class AbstractChatService(Protocol):
         """
         ...
 
-    async def update(self, chat_id: UUID, executor_id: UUID | None = None, title: str | None = None) -> Chat:
+    async def update(
+        self, chat_id: UUID, executor_id: UUID | None = None, title: str | None = None
+    ) -> Chat:
         """Обновить данные чата
 
         Args:
@@ -76,7 +80,9 @@ class AbstractChatService(Protocol):
         """
         ...
 
-    async def get_list(self, user_id: UUID, offset: int = 0, limit: int = 50) -> Sequence[UUID]:
+    async def get_list(
+        self, user_id: UUID, offset: int = 0, limit: int = 50
+    ) -> Sequence[UUID]:
         """Получить список чатов пользователя
 
         Args:
@@ -89,7 +95,9 @@ class AbstractChatService(Protocol):
         """
         ...
 
-    async def member_add(self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None) -> ChatMember:
+    async def member_add(
+        self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None
+    ) -> ChatMember:
         """Добавить пользователя в чат
 
         Args:
@@ -106,7 +114,9 @@ class AbstractChatService(Protocol):
         """
         ...
 
-    async def member_remove(self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None) -> None:
+    async def member_remove(
+        self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None
+    ) -> None:
         """Удалить пользователя из чата
 
         Args:
@@ -120,7 +130,9 @@ class AbstractChatService(Protocol):
         """
         ...
 
-    async def member_block(self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None) -> None:
+    async def member_block(
+        self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None
+    ) -> None:
         """Заблокировать пользователя в чате
 
         Args:
@@ -134,7 +146,9 @@ class AbstractChatService(Protocol):
         """
         ...
 
-    async def member_unblock(self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None) -> None:
+    async def member_unblock(
+        self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None
+    ) -> None:
         """Разблокировать пользователя в чате
 
         Args:
@@ -148,7 +162,13 @@ class AbstractChatService(Protocol):
         """
         ...
 
-    async def member_change_role(self, chat_id: UUID, user_id: UUID, permissions: ChatMemberPermissions, executor_id: UUID | None = None) -> None:
+    async def member_change_role(
+        self,
+        chat_id: UUID,
+        user_id: UUID,
+        permissions: ChatMemberPermissions,
+        executor_id: UUID | None = None,
+    ) -> None:
         """Изменить роль пользователя в чате
 
         Args:
@@ -180,93 +200,138 @@ class AbstractChatService(Protocol):
 
 
 class ChatService:
-    def __init__(self, chat_repository: AbstractChatRepository, chat_member_repository: AbstractChatMemberRepository):
+    def __init__(
+        self,
+        chat_repository: AbstractChatRepository,
+        chat_member_repository: AbstractChatMemberRepository,
+    ):
         self.__chat_repo = chat_repository
         self.__chat_member_repo = chat_member_repository
 
-    async def create_personal(self, title: str, owner_user_1: UUID, owner_user_2: UUID) -> Chat:
+    async def create_personal(
+        self, title: str, owner_user_1: UUID, owner_user_2: UUID
+    ) -> Chat:
         chat = await self.__chat_repo.create(chat_type=ChatType.PERSONAL, title=title)
         await self.__chat_member_repo.create(
             ChatMember(
                 chat_id=chat.id,
                 user_id=owner_user_1,
-                permissions=ChatMemberPermissions.ROLE_OWNER
+                permissions=ChatMemberPermissions.ROLE_OWNER,
             )
         )
         await self.__chat_member_repo.create(
             ChatMember(
                 chat_id=chat.id,
                 user_id=owner_user_2,
-                permissions=ChatMemberPermissions.ROLE_OWNER
-            )
-        )
-        return chat
-    
-    async def create_group(self, title: str, owner_id: UUID) -> Chat:
-        chat = await self.__chat_repo.create(
-            chat_type=ChatType.GROUP,
-            title=title
-        )
-        await self.__chat_member_repo.create(
-            ChatMember(
-                chat_id=chat.id,
-                user_id=owner_id,
-                permissions=ChatMemberPermissions.ROLE_OWNER
+                permissions=ChatMemberPermissions.ROLE_OWNER,
             )
         )
         return chat
 
-    async def _can_execute(self, chat_id: UUID, user_id: UUID, action: ChatMemberPermissions) -> bool:
+    async def create_group(self, title: str, owner_id: UUID) -> Chat:
+        chat = await self.__chat_repo.create(chat_type=ChatType.GROUP, title=title)
+        await self.__chat_member_repo.create(
+            ChatMember(
+                chat_id=chat.id,
+                user_id=owner_id,
+                permissions=ChatMemberPermissions.ROLE_OWNER,
+            )
+        )
+        return chat
+
+    async def _can_execute(
+        self, chat_id: UUID, user_id: UUID, action: ChatMemberPermissions
+    ) -> bool:
         member = await self.__chat_member_repo.get((chat_id, user_id))
         return action in member.permissions or action == member.permissions
 
     async def get(self, chat_id: UUID) -> Chat:
         return await self.__chat_repo.get(_id=chat_id)
 
-    async def update(self, chat_id: UUID, executor_id: UUID | None = None, title: str | None = None) -> Chat:
-        if executor_id is not None and not await self._can_execute(chat_id, executor_id, ChatMemberPermissions.CHAT_CHANGE):
+    async def update(
+        self, chat_id: UUID, executor_id: UUID | None = None, title: str | None = None
+    ) -> Chat:
+        if executor_id is not None and not await self._can_execute(
+            chat_id, executor_id, ChatMemberPermissions.CHAT_CHANGE
+        ):
             raise AccessDeniedExc()
         return await self.__chat_repo.update(_id=chat_id, title=title)
 
     async def delete(self, chat_id: UUID, executor_id: UUID | None = None) -> None:
-        if executor_id is not None and not await self._can_execute(chat_id, executor_id, ChatMemberPermissions.CHAT_DELETE):
+        if executor_id is not None and not await self._can_execute(
+            chat_id, executor_id, ChatMemberPermissions.CHAT_DELETE
+        ):
             raise AccessDeniedExc()
         await self.__chat_repo.delete(_id=chat_id)
-    
-    async def get_list(self, user_id: UUID, offset: int = 0, limit:  int = 50) -> Sequence[UUID]:
-        return await self.__chat_member_repo.list_by_user_id(_id=user_id, offset=offset, limit=limit)
-    
+
+    async def get_list(
+        self, user_id: UUID, offset: int = 0, limit: int = 50
+    ) -> Sequence[UUID]:
+        return await self.__chat_member_repo.list_by_user_id(
+            _id=user_id, offset=offset, limit=limit
+        )
+
     async def member_get(self, chat_id: UUID, user_id: UUID) -> ChatMember:
         return await self.__chat_member_repo.get((chat_id, user_id))
-    
-    async def member_add(self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None) -> ChatMember:
-        if executor_id is not None and not await self._can_execute(chat_id, executor_id, ChatMemberPermissions.MEMBER_ADD):
+
+    async def member_add(
+        self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None
+    ) -> ChatMember:
+        if executor_id is not None and not await self._can_execute(
+            chat_id, executor_id, ChatMemberPermissions.MEMBER_ADD
+        ):
             raise AccessDeniedExc()
         return await self.__chat_member_repo.create(
             ChatMember(
                 chat_id=chat_id,
                 user_id=user_id,
                 permissions=ChatMemberPermissions.ROLE_DEFAULT,
-                invited_by=executor_id
+                invited_by=executor_id,
             )
         )
-    
-    async def member_remove(self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None) -> None:
-        if executor_id is not None and not await self._can_execute(chat_id, executor_id, ChatMemberPermissions.MEMBER_REMOVE):
+
+    async def member_remove(
+        self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None
+    ) -> None:
+        if executor_id is not None and not await self._can_execute(
+            chat_id, executor_id, ChatMemberPermissions.MEMBER_REMOVE
+        ):
             raise AccessDeniedExc()
         await self.__chat_member_repo.delete((chat_id, user_id))
-    
-    async def member_block(self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None) -> None:
-        if executor_id is not None and not await self._can_execute(chat_id, executor_id, ChatMemberPermissions.MEMBER_BLOCK):
+
+    async def member_block(
+        self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None
+    ) -> None:
+        if executor_id is not None and not await self._can_execute(
+            chat_id, executor_id, ChatMemberPermissions.MEMBER_BLOCK
+        ):
             raise AccessDeniedExc()
-        await self.__chat_member_repo.update((chat_id, user_id), permissions=ChatMemberPermissions.ROLE_BLOCKED)
-    
-    async def member_unblock(self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None) -> None:
-        if executor_id is not None and not await self._can_execute(chat_id, executor_id, ChatMemberPermissions.MEMBER_BLOCK):
+        await self.__chat_member_repo.update(
+            (chat_id, user_id), permissions=ChatMemberPermissions.ROLE_BLOCKED
+        )
+
+    async def member_unblock(
+        self, chat_id: UUID, user_id: UUID, executor_id: UUID | None = None
+    ) -> None:
+        if executor_id is not None and not await self._can_execute(
+            chat_id, executor_id, ChatMemberPermissions.MEMBER_BLOCK
+        ):
             raise AccessDeniedExc()
-        await self.__chat_member_repo.update((chat_id, user_id), permissions=ChatMemberPermissions.ROLE_DEFAULT)
-    
-    async def member_change_role(self, chat_id: UUID, user_id: UUID, permissions: ChatMemberPermissions, executor_id: UUID | None = None) -> None:
-        if executor_id is not None and not await self._can_execute(chat_id, executor_id, ChatMemberPermissions.MEMBER_CHANGE_ROLE):
+        await self.__chat_member_repo.update(
+            (chat_id, user_id), permissions=ChatMemberPermissions.ROLE_DEFAULT
+        )
+
+    async def member_change_role(
+        self,
+        chat_id: UUID,
+        user_id: UUID,
+        permissions: ChatMemberPermissions,
+        executor_id: UUID | None = None,
+    ) -> None:
+        if executor_id is not None and not await self._can_execute(
+            chat_id, executor_id, ChatMemberPermissions.MEMBER_CHANGE_ROLE
+        ):
             raise AccessDeniedExc()
-        await self.__chat_member_repo.update((chat_id, user_id), permissions=permissions)
+        await self.__chat_member_repo.update(
+            (chat_id, user_id), permissions=permissions
+        )

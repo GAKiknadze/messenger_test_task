@@ -1,8 +1,13 @@
-from typing import Protocol, Tuple, Sequence
+from typing import Protocol, Sequence, Tuple
 from uuid import UUID
 
-from ...common.repositories import AbstractDelete, AbstractGet, AbstractUpdate, AbstractCreate
-from .entities import Chat, ChatType, ChatMember
+from ...common.repositories import (
+    AbstractCreate,
+    AbstractDelete,
+    AbstractGet,
+    AbstractUpdate,
+)
+from .entities import Chat, ChatMember, ChatType
 
 
 class AbstractChatRepository(
@@ -23,16 +28,20 @@ class AbstractChatRepository(
         """
         ...
 
+
 MEMBER_ID = Tuple[UUID, UUID]
+
 
 class AbstractChatMemberRepository(
     AbstractCreate[ChatMember],
     AbstractGet[MEMBER_ID, ChatMember],
     AbstractUpdate[MEMBER_ID, ChatMember],
     AbstractDelete[MEMBER_ID, ChatMember],
-    Protocol
+    Protocol,
 ):
-    async def list_by_user_id(_id: UUID, offset: int = 0, limit:  int = 50) -> Sequence[UUID]:
+    async def list_by_user_id(
+        self, _id: UUID, offset: int = 0, limit: int = 50
+    ) -> Sequence[UUID]:
         """Получить список идентификаторов чатов, связанных с конкретным пользователем.
 
         Args:
@@ -43,5 +52,5 @@ class AbstractChatMemberRepository(
         Returns:
             Sequence[UUID]: Последовательность UUID чатов, в которых участвует пользователь.
         """
-        
+
         ...

@@ -4,7 +4,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.common.exceptions import ObjectNotFoundExc, AccessDeniedExc
+from src.common.exceptions import AccessDeniedExc, ObjectNotFoundExc
 from src.domain.chats import entities, repositories, services
 
 
@@ -60,7 +60,9 @@ class FakeChatMemberRepository:
             raise ObjectNotFoundExc("Member not found")
         return self.members[_id]
 
-    async def update(self, _id: tuple[UUID, UUID], **attrs: Dict[str, Any]) -> entities.ChatMember:
+    async def update(
+        self, _id: tuple[UUID, UUID], **attrs: Dict[str, Any]
+    ) -> entities.ChatMember:
         member = await self.get(_id)
         for k, v in attrs.items():
             if v is not None and hasattr(member, k):
@@ -73,12 +75,13 @@ class FakeChatMemberRepository:
             raise ObjectNotFoundExc("Member not found")
         del self.members[_id]
 
-    async def list_by_user_id(self, _id: UUID, offset: int = 0, limit: int = 50) -> Sequence[UUID]:
+    async def list_by_user_id(
+        self, _id: UUID, offset: int = 0, limit: int = 50
+    ) -> Sequence[UUID]:
         chat_ids = [
-            chat_id for chat_id, user_id in self.members.keys()
-            if user_id == _id
+            chat_id for chat_id, user_id in self.members.keys() if user_id == _id
         ]
-        return chat_ids[offset:offset + limit]
+        return chat_ids[offset : offset + limit]
 
 
 @pytest.fixture
@@ -92,7 +95,9 @@ def chat_member_repository() -> repositories.AbstractChatMemberRepository:
 
 
 @pytest.fixture
-def chat_service(chat_repository, chat_member_repository) -> services.AbstractChatService:
+def chat_service(
+    chat_repository, chat_member_repository
+) -> services.AbstractChatService:
     return services.ChatService(chat_repository, chat_member_repository)
 
 
@@ -142,9 +147,7 @@ class TestChatService:
         )
 
         updated_chat = await chat_service.update(
-            chat_id=created_chat.id,
-            executor_id=owner_id,
-            title="Updated Title"
+            chat_id=created_chat.id, executor_id=owner_id, title="Updated Title"
         )
         assert updated_chat.id == created_chat.id
         assert updated_chat.title == "Updated Title"
@@ -156,18 +159,14 @@ class TestChatService:
             title="Original Title",
             owner_id=owner_id,
         )
-        
+
         await chat_service.member_add(
-            chat_id=created_chat.id,
-            user_id=non_owner_id,
-            executor_id=owner_id
+            chat_id=created_chat.id, user_id=non_owner_id, executor_id=owner_id
         )
 
         with pytest.raises(AccessDeniedExc):
             await chat_service.update(
-                chat_id=created_chat.id,
-                executor_id=non_owner_id,
-                title="Updated Title"
+                chat_id=created_chat.id, executor_id=non_owner_id, title="Updated Title"
             )
 
     async def test_delete_chat_with_permissions(self, chat_service):
@@ -191,9 +190,7 @@ class TestChatService:
         )
 
         await chat_service.member_add(
-            chat_id=created_chat.id,
-            user_id=non_owner_id,
-            executor_id=owner_id
+            chat_id=created_chat.id, user_id=non_owner_id, executor_id=owner_id
         )
 
         with pytest.raises(AccessDeniedExc):
@@ -215,34 +212,28 @@ class TestChatService:
         chat = await chat_service.create_group(title="Test Group", owner_id=owner_id)
 
         member = await chat_service.member_add(
-            chat_id=chat.id,
-            user_id=user_id,
-            executor_id=owner_id
+            chat_id=chat.id, user_id=user_id, executor_id=owner_id
         )
         assert member.chat_id == chat.id
         assert member.user_id == user_id
         assert member.permissions == entities.ChatMemberPermissions.ROLE_DEFAULT
 
         await chat_service.member_block(
-            chat_id=chat.id,
-            user_id=user_id,
-            executor_id=owner_id
+            chat_id=chat.id, user_id=user_id, executor_id=owner_id
         )
         blocked_member = await chat_member_repository.get((chat.id, user_id))
         assert blocked_member.permissions == entities.ChatMemberPermissions.ROLE_BLOCKED
 
         await chat_service.member_unblock(
-            chat_id=chat.id,
-            user_id=user_id,
-            executor_id=owner_id
+            chat_id=chat.id, user_id=user_id, executor_id=owner_id
         )
         unblocked_member = await chat_member_repository.get((chat.id, user_id))
-        assert unblocked_member.permissions == entities.ChatMemberPermissions.ROLE_DEFAULT
+        assert (
+            unblocked_member.permissions == entities.ChatMemberPermissions.ROLE_DEFAULT
+        )
 
         await chat_service.member_remove(
-            chat_id=chat.id,
-            user_id=user_id,
-            executor_id=owner_id
+            chat_id=chat.id, user_id=user_id, executor_id=owner_id
         )
         with pytest.raises(ObjectNotFoundExc):
             await chat_member_repository.get((chat.id, user_id))
@@ -253,9 +244,7 @@ class TestChatService:
         chat = await chat_service.create_group(title="Test Group", owner_id=owner_id)
 
         await chat_service.member_add(
-            chat_id=chat.id,
-            user_id=user_id,
-            executor_id=owner_id
+            chat_id=chat.id, user_id=user_id, executor_id=owner_id
         )
 
         member = await chat_service.member_get(chat_id=chat.id, user_id=user_id)
